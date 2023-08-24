@@ -1,0 +1,117 @@
+{% capture breakLine %}
+{% endcapture %}
+{% liquid
+  assign listSpace = '  ,   ,    ,     ,      ,       ,        ,         ,          ' | split: ','
+  assign clearCommentTag = ''
+  assign listCommentTagsAfter = rawHTML | split: '<!--'
+  for afterItem in listCommentTagsAfter
+    assign afterContent = afterItem | split: '-->' | last
+    assign clearCommentTag = clearCommentTag | append: afterContent
+  endfor
+
+  assign clearCommentCss = ''
+  assign listCommentCssAfter = clearCommentTag | split: '/*'
+  for afterItem in listCommentCssAfter
+    assign afterContent = afterItem | split: '*/' | last
+    assign clearCommentCss = clearCommentCss | append: afterContent
+  endfor
+
+  assign structureHTML = clearCommentCss | split: '</head>'
+  assign cleanHTML = ''
+
+  assign headContent = structureHTML | first
+
+  assign cleanHead = ''
+  assign headRaw = headContent | prepend: '!![POSITION-SCRIPT]!!'
+  assign listScriptTagAfter = headRaw | split: '<script'
+  for afterItem in listScriptTagAfter
+    assign contentClean = ''
+    if forloop.first == true and afterItem contains '!![POSITION-SCRIPT]!!'
+      assign contentClean = contentClean | append: afterItem | replace: '!![POSITION-SCRIPT]!!', '' | strip_newlines | strip | replace: '> ', '>' | replace: ' <', '<'
+      for space in listSpace
+        assign contentClean = contentClean | replace: space, ' '
+      endfor
+    elsif afterItem contains '</script>'
+      assign listContentClearScript = afterItem | split: '</script>'
+      if listContentClearScript.size > 1
+        assign contentScript = listContentClearScript | first
+        assign contentClean = contentScript | prepend: '<script' | append: '</script>'
+
+        assign contentAfterScript = listContentClearScript | last
+        assign contentAfterScriptClean = contentAfterScript | strip_newlines | strip
+        for space in listSpace
+          assign contentAfterScriptClean = contentAfterScriptClean | replace: space, ' '
+        endfor
+
+        assign clearStyleTag = ''
+        assign cleanStyleTag = contentAfterScriptClean | prepend: '!![POSITION-STYLE]!!'
+        assign listStyleTagAfter = cleanStyleTag | split: '<style'
+        for styleAfter in listStyleTagAfter
+          assign styleClean = ''
+          if forloop.first == true and styleAfter contains '!![POSITION-STYLE]!!'
+            assign styleClean = styleClean | append: styleAfter | replace: '!![POSITION-STYLE]!!', '' | strip_newlines | strip | replace: '> ', '>' | replace: ' <', '<'
+          elsif styleAfter contains '</style>'
+            assign listContentClearStyle = styleAfter | split: '</style>'
+            if listContentClearStyle.size > 1
+              assign contentStyle = listContentClearStyle | first
+              assign styleClean = contentStyle | prepend: '<style' | append: '</style>' | strip_newlines | strip | replace: '{  ', '{' | replace: '{   ', '{' | replace: '  }', '}' | replace: '   }', '}'
+
+              assign contentAfterStyle = listContentClearStyle | last
+              assign contentAfterStyleClean = contentAfterStyle | strip_newlines | strip | replace: '> ', '>' | replace: ' <', '<'
+              assign styleClean = styleClean | append: contentAfterStyleClean
+            else
+              assign contentStyle = listContentClearStyle | last | remove: breakLine
+              assign styleClean = contentStyle | prepend: '<style' | append: '</style>' | strip_newlines | strip | replace: '{  ', '{' | replace: '{   ', '{' | replace: '  }', '}' | replace: '   }', '}'
+            endif
+          endif
+          assign clearStyleTag = clearStyleTag | append: styleClean
+        endfor
+
+        assign contentClean = contentClean | append: clearStyleTag
+
+      else
+        assign contentScript = listContentClearScript | last
+        assign contentClean = contentScript | prepend: '<script' | append: '</script>'
+      endif
+    endif
+    assign cleanHead = cleanHead | append: contentClean
+  endfor
+
+  assign bodyContent = structureHTML | last
+  assign cleanBody = ''
+  assign bodyRaw = bodyContent | prepend: '!![POSITION-SCRIPT]!!'
+  assign listScriptTagAfter = bodyRaw | split: '<script'
+  for afterItem in listScriptTagAfter
+    assign contentClean = ''
+    if forloop.first == true and afterItem contains '!![POSITION-SCRIPT]!!'
+      assign contentClean = contentClean | append: afterItem | replace: '!![POSITION-SCRIPT]!!', '' | strip_newlines | strip
+      for space in listSpace
+        assign contentClean = contentClean | replace: space, ' '
+      endfor
+    elsif afterItem contains '</script>'
+      assign listContentClearScript = afterItem | split: '</script>'
+      if listContentClearScript.size > 1
+        assign contentScript = listContentClearScript | first
+        assign contentClean = contentScript | prepend: '<script' | append: '</script>'
+
+        assign contentAfterScript = listContentClearScript | last
+        assign contentAfterScriptClean = contentAfterScript | strip_newlines | strip
+        for space in listSpace
+          assign contentAfterScriptClean = contentAfterScriptClean | replace: space, ' '
+        endfor
+        assign contentClean = contentClean | append: contentAfterScriptClean | replace: '> ', '>' | replace: ' <', '<'
+      else
+        assign contentScript = listContentClearScript | last
+        assign contentClean = contentScript | prepend: '<script' | append: '</script>'
+      endif
+    endif
+    assign cleanBody = cleanBody | append: contentClean
+  endfor
+
+  assign cleanHTML = cleanHTML | prepend: cleanHead | append: '</head>' | append: cleanBody
+
+  echo cleanHTML
+%}
+{% comment %}
+  echo rawHTML
+{% endcomment %}
