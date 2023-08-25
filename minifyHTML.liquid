@@ -3,10 +3,15 @@
 {% liquid
   assign listSpace = '  ,   ,    ,     ,      ,       ,        ,         ,          ' | split: ','
   assign clearCommentTag = ''
-  assign listCommentTagsAfter = rawHTML | split: '<!--'
+  assign listCommentTagsAfter = content | split: '<!--'
   for afterItem in listCommentTagsAfter
-    assign afterContent = afterItem | split: '-->' | last
-    assign clearCommentTag = clearCommentTag | append: afterContent
+    if afterContent.size > 1
+		  assign clearAffter = afterContent  | last
+		  assign clearCommentTag = clearCommentTag | append: clearAffter
+    else 
+      assign clearAffter = afterItem | split: '-->'  | last
+      assign clearCommentTag = clearCommentTag | append: clearAffter
+	  endif
   endfor
 
   assign clearCommentCss = ''
@@ -113,5 +118,10 @@
   echo cleanHTML
 %}
 {% comment %}
-  echo rawHTML
+  echo content
+  using function by wrapper all html like example below
+  
+  {%- capture minified -%}
+  {% endcapture %}
+  {%- render 'MQminifyHTML', content: minified -%}
 {% endcomment %}
